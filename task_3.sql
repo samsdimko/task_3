@@ -42,7 +42,10 @@ inner join city c2 on c2.city_id = a.city_id
 group by c2.city
 order by disactive desc;
 
-(select 'Category starts with A with the biggest rental_time' as info, c."name" from category c 
+with popular_category as(
+select city, name,
+dense_rank() over (partition by c3.city order by sum(r.return_date - r.rental_date) desc) as dr
+from category c
 inner join film_category fc on fc.category_id = c.category_id 
 inner join film f on f.film_id = fc.film_id 
 inner join inventory i on f.film_id = i.film_id
@@ -50,20 +53,9 @@ inner join customer c2 on c2.store_id = i.store_id
 inner join rental r on r.customer_id = c2.customer_id 
 inner join address a on a.address_id = c2.address_id 
 inner join city c3 on c3.city_id = a.city_id 
-where c."name"  like 'A%'
-group by c."name"
-order by sum(r.return_date - r.rental_date) desc
-limit 1)
-union 
-(select 'City with the biggest rental_time of film category starts with A from cities with "-" in name' as info, c3.city as "name" from category c 
-inner join film_category fc on fc.category_id = c.category_id 
-inner join film f on f.film_id = fc.film_id 
-inner join inventory i on f.film_id = i.film_id
-inner join customer c2 on c2.store_id = i.store_id 
-inner join rental r on r.customer_id = c2.customer_id 
-inner join address a on a.address_id = c2.address_id 
-inner join city c3 on c3.city_id = a.city_id 
-where c."name"  like 'A%' and c3.city like '%-%'
-group by c3.city
-order by sum(r.return_date - r.rental_date) desc
-limit 1)
+where c."name" like 'A%' and city like '%-%'
+group by city, name
+)
+select city, name 
+from popular_category 
+where dr = 1;
